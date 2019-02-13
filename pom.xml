@@ -8,7 +8,7 @@
 		<version>2.1.2.RELEASE</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.bricklink.ajax</groupId>
+	<groupId>com.bricklink.api</groupId>
 	<artifactId>bricklink-ajax</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<name>Bricklink API :: Ajax</name>
@@ -39,11 +39,6 @@
 			<groupId>io.github.openfeign</groupId>
 			<artifactId>feign-slf4j</artifactId>
 			<version>9.5.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.fasterxml.jackson.dataformat</groupId>
-			<artifactId>jackson-dataformat</artifactId>
 		</dependency>
 
 		<dependency>

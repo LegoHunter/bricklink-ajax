@@ -2,8 +2,16 @@ package com.bricklink.api.ajax;
 
 import com.bricklink.api.ajax.support.CatalogItemsForSaleResult;
 import com.bricklink.api.ajax.support.SearchProductResult;
+import feign.Feign;
 import feign.QueryMap;
 import feign.RequestLine;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
+import feign.okhttp.OkHttpClient;
+import feign.slf4j.Slf4jLogger;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
