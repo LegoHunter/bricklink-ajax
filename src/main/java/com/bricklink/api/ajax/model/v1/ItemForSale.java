@@ -2,7 +2,12 @@ package com.bricklink.api.ajax.model.v1;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,6 +15,7 @@ import java.util.regex.Pattern;
 @Setter
 @ToString
 @NoArgsConstructor
+@Slf4j
 public class ItemForSale {
     private Integer idInv;
     private String strDesc;
@@ -50,14 +56,22 @@ public class ItemForSale {
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private Pattern salePricePattern = Pattern.compile("^([A-Z]{2})\\s(.)(.*)$");
+    private final Pattern salePricePattern = Pattern.compile("^([A-Z]{2})\\s(.)(.*)$");
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final DecimalFormat decimalFormat = new DecimalFormat("0,000,000.00");
 
     public Double getSalePrice() {
         Double salePrice = null;
         if (null != mDisplaySalePrice) {
             Matcher salePriceMatcher = salePricePattern.matcher(mDisplaySalePrice);
             if (salePriceMatcher.matches()) {
-                salePrice = Double.valueOf(salePriceMatcher.group(3));
+                try {
+                    salePrice = decimalFormat.parse(salePriceMatcher.group(3)).doubleValue();
+                } catch (ParseException e) {
+                    log.error("Unable to parse decimal number [{}]", salePriceMatcher.group(3));
+                }
             }
         }
         return salePrice;
