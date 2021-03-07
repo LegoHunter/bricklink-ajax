@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 @ToString
 @NoArgsConstructor
 @Slf4j
-public class ItemForSale {
+public class  ItemForSale {
     private Integer idInv;
     private String strDesc;
     private String codeNew;
