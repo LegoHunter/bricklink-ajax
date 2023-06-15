@@ -40,4 +40,6 @@ public interface BricklinkAjaxClient {
             "cond={cond}&" +
             "rpp={rpp}")
     CatalogItemsForSaleResult catalogItemsForSale(@QueryMap Map<String, Object> params);
+
+    //StoreInventoryDetailUpdateResult
 }

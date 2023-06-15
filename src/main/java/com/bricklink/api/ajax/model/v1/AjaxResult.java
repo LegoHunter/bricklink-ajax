@@ -8,6 +8,8 @@ import lombok.*;
 @EqualsAndHashCode
 @ToString
 public abstract class AjaxResult {
+    private Integer reqCnt;
+    private Integer updated;
     private Integer returnCode;
     private String returnMessage;
     private Integer errorTicket;
