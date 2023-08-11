@@ -3,6 +3,7 @@ package com.bricklink.api.ajax.configuration;
 import com.bricklink.api.ajax.BricklinkAjaxClient;
 import com.bricklink.web.support.BricklinkWebService;
 import feign.Feign;
+import feign.Logger;
 import feign.httpclient.ApacheHttpClient;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
@@ -23,7 +24,7 @@ public class BricklinkAjaxConfiguration {
                 .encoder(new JacksonEncoder())
                 .decoder(new JacksonDecoder())
                 .logger(new Slf4jLogger(BricklinkAjaxClient.class))
-                .logLevel(feign.Logger.Level.FULL)
+                .logLevel(Logger.Level.FULL)
                 .target(BricklinkAjaxClient.class, "https://www.bricklink.com");
     }
 }

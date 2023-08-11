@@ -1,12 +1,14 @@
 package com.bricklink.api.ajax.model.v1;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
-import java.math.BigDecimal;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +49,7 @@ public class  ItemForSale {
     private String strCategory;
     private String strStorename;
     private Integer idCurrencyStore;
+    @JsonProperty("mMinBuy")
     private String mMinBuy;
     private String strSellerUsername;
     private Integer n4SellerFeedbackScore;
@@ -62,18 +65,27 @@ public class  ItemForSale {
     @Setter(AccessLevel.NONE)
     private final DecimalFormat decimalFormat = new DecimalFormat("0,000,000.00");
 
+    @ToString.Include
     public Double getSalePrice() {
-        Double salePrice = null;
-        if (null != mDisplaySalePrice) {
-            Matcher salePriceMatcher = salePricePattern.matcher(mDisplaySalePrice);
+        return getDoubleFromSalePricePatternString(mDisplaySalePrice);
+    }
+
+    @ToString.Include
+    public Double getMinBuy() {
+        return getDoubleFromSalePricePatternString(mMinBuy);
+    }
+
+    private Double getDoubleFromSalePricePatternString(String salePricePatternString) {
+        if (null != salePricePatternString) {
+            Matcher salePriceMatcher = salePricePattern.matcher(salePricePatternString);
             if (salePriceMatcher.matches()) {
                 try {
-                    salePrice = decimalFormat.parse(salePriceMatcher.group(3)).doubleValue();
+                    return decimalFormat.parse(salePriceMatcher.group(3)).doubleValue();
                 } catch (ParseException e) {
                     log.error("Unable to parse decimal number [{}]", salePriceMatcher.group(3));
                 }
             }
         }
-        return salePrice;
+        return 0.0d;
     }
 }

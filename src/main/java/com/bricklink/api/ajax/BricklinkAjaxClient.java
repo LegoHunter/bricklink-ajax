@@ -41,9 +41,12 @@ public interface BricklinkAjaxClient {
             GET /ajax/clone/catalogifs.ajax?\
             itemid={itemid}&\
             cond={cond}&\
-            rpp={rpp}\
+            rpp={rpp}&\
+            loc={loc}&\
+            minqty={minqty}&\
+            st={st}&\
+            pi={pi}&\
+            color={color}\
             """)
     CatalogItemsForSaleResult catalogItemsForSale(@QueryMap Map<String, Object> params);
-
-    //StoreInventoryDetailUpdateResult
 }

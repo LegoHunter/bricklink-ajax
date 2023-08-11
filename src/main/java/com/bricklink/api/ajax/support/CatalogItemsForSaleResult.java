@@ -2,7 +2,12 @@ package com.bricklink.api.ajax.support;
 
 import com.bricklink.api.ajax.model.v1.AjaxResult;
 import com.bricklink.api.ajax.model.v1.ItemForSale;
-import lombok.*;
+import com.bricklink.api.filter.Filters;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +26,15 @@ public class CatalogItemsForSaleResult extends AjaxResult {
     private List<ItemForSale> list;
 
     public List<ItemForSale> getList() {
-        return Optional.ofNullable(list).orElse(Collections.emptyList());
+        return Optional.ofNullable(list)
+                       .orElse(Collections.emptyList());
+    }
+
+    public List<ItemForSale> getList(Filters filters) {
+        return Optional.ofNullable(list)
+                       .map(l -> l.stream()
+                                  .filter(filters)
+                                  .toList())
+                       .orElse(Collections.emptyList());
     }
 }
