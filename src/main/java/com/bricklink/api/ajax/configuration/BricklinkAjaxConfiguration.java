@@ -1,6 +1,7 @@
 package com.bricklink.api.ajax.configuration;
 
 import com.bricklink.api.ajax.BricklinkAjaxClient;
+import com.bricklink.api.ajax.PagingBricklinkAjaxClient;
 import com.bricklink.web.support.BricklinkWebService;
 import feign.Feign;
 import feign.Logger;
@@ -15,6 +16,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties
 public class BricklinkAjaxConfiguration {
+
+    @Bean
+    public PagingBricklinkAjaxClient pagingBricklinkAjaxClient(final BricklinkAjaxClient bricklinkAjaxClient) {
+        return new PagingBricklinkAjaxClient(bricklinkAjaxClient);
+    }
 
     @Bean
     public BricklinkAjaxClient bricklinkAjaxClient(BricklinkWebService bricklinkWebService) {
