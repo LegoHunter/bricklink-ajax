@@ -24,6 +24,7 @@ public class PagingBricklinkAjaxClient implements BricklinkAjaxClient {
         completedCatalogItemsForSaleResult.setList(new ArrayList<>());
 
         while (true) {
+            pause();
             CatalogItemsForSaleResult catalogItemsForSaleResult = bricklinkAjaxClient.catalogItemsForSale(params);
             Integer thisPageNumber = catalogItemsForSaleResult.getPi();
             Integer totalCount = catalogItemsForSaleResult.getTotal_count();
@@ -38,4 +39,13 @@ public class PagingBricklinkAjaxClient implements BricklinkAjaxClient {
         }
         return completedCatalogItemsForSaleResult;
     }
+
+    void pause() {
+        try {
+            Thread.sleep(1300);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
