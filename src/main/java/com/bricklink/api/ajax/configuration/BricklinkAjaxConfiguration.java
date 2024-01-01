@@ -2,7 +2,7 @@ package com.bricklink.api.ajax.configuration;
 
 import com.bricklink.api.ajax.BricklinkAjaxClient;
 import com.bricklink.api.ajax.PagingBricklinkAjaxClient;
-import com.bricklink.web.support.BricklinkWebServiceImpl;
+import com.bricklink.web.api.BricklinkWebService;
 import feign.Feign;
 import feign.Logger;
 import feign.httpclient.ApacheHttpClient;
@@ -23,7 +23,7 @@ public class BricklinkAjaxConfiguration {
     }
 
     @Bean
-    public BricklinkAjaxClient bricklinkAjaxClient(BricklinkWebServiceImpl bricklinkWebService) {
+    public BricklinkAjaxClient bricklinkAjaxClient(BricklinkWebService bricklinkWebService) {
         return Feign
                 .builder()
                 .client(new ApacheHttpClient(bricklinkWebService.getHttpClient()))
