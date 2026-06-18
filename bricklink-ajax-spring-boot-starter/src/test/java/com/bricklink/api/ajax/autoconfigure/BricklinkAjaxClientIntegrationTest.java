@@ -1,6 +1,8 @@
 package com.bricklink.api.ajax.autoconfigure;
 
 import com.bricklink.api.ajax.BricklinkAjaxClient;
+import com.bricklink.api.ajax.exception.BricklinkAjaxClientException;
+import com.bricklink.api.ajax.exception.BricklinkAjaxServerException;
 import com.bricklink.api.ajax.model.v1.Item;
 import com.bricklink.api.ajax.support.CatalogItemsForSaleResult;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -15,6 +17,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BricklinkAjaxClientIntegrationTest {
     private WireMockServer server;
@@ -100,6 +103,52 @@ class BricklinkAjaxClientIntegrationTest {
             assertThat(result.getList()).hasSize(1);
             assertThat(result.getList().getFirst().getSalePrice()).isEqualTo(220.00d);
         });
+    }
+
+    @Test
+    void throwsClientExceptionForUnexpectedRedirect() {
+        server.stubFor(get(urlPathEqualTo("/ajax/clone/catalogifs.ajax"))
+                .willReturn(aResponse()
+                        .withStatus(302)
+                        .withHeader("Location", "/v2/login.page")
+                        .withBody("redirect")));
+
+        contextRunner().run(context -> assertThatThrownBy(() -> context.getBean(BricklinkAjaxClient.class)
+                .catalogItemsForSaleByInternalItemId(4997, "U", 500))
+                .isInstanceOf(BricklinkAjaxClientException.class)
+                .hasMessageContaining("Unexpected redirect"));
+    }
+
+    @Test
+    void throwsClientExceptionForHttpClientError() {
+        server.stubFor(get(urlPathEqualTo("/ajax/clone/catalogifs.ajax"))
+                .willReturn(aResponse()
+                        .withStatus(429)
+                        .withHeader("Content-Type", "text/plain")
+                        .withBody("too many requests")));
+
+        contextRunner().run(context -> assertThatThrownBy(() -> context.getBean(BricklinkAjaxClient.class)
+                .catalogItemsForSaleByInternalItemId(4997, "U", 500))
+                .isInstanceOfSatisfying(BricklinkAjaxClientException.class, exception -> {
+                    assertThat(exception.getStatusCode()).isEqualTo(429);
+                    assertThat(exception).hasMessageContaining("too many requests");
+                }));
+    }
+
+    @Test
+    void throwsServerExceptionForHttpServerError() {
+        server.stubFor(get(urlPathEqualTo("/ajax/clone/catalogifs.ajax"))
+                .willReturn(aResponse()
+                        .withStatus(503)
+                        .withHeader("Content-Type", "text/plain")
+                        .withBody("temporarily unavailable")));
+
+        contextRunner().run(context -> assertThatThrownBy(() -> context.getBean(BricklinkAjaxClient.class)
+                .catalogItemsForSaleByInternalItemId(4997, "U", 500))
+                .isInstanceOfSatisfying(BricklinkAjaxServerException.class, exception -> {
+                    assertThat(exception.getStatusCode()).isEqualTo(503);
+                    assertThat(exception).hasMessageContaining("temporarily unavailable");
+                }));
     }
 
     private ApplicationContextRunner contextRunner() {

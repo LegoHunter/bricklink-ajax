@@ -8,6 +8,7 @@ import com.bricklink.api.ajax.support.SearchProductResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,6 +35,25 @@ class DefaultBricklinkAjaxClientTest {
     }
 
     @Test
+    void findCatalogItemDefaultsBlankItemTypeToSet() {
+        CapturingHttpClient httpClient = new CapturingHttpClient();
+        httpClient.searchProductResult = searchResult(item("4997", "S", "6390-1", "Main Street"));
+        DefaultBricklinkAjaxClient client = new DefaultBricklinkAjaxClient(httpClient);
+
+        assertThat(client.findCatalogItem("6390-1", " ")).isPresent();
+        assertThat(httpClient.searchParams).containsEntry("type", "S");
+    }
+
+    @Test
+    void findCatalogItemReturnsEmptyWithoutCallingBricklinkWhenItemNumberIsBlank() {
+        CapturingHttpClient httpClient = new CapturingHttpClient();
+        DefaultBricklinkAjaxClient client = new DefaultBricklinkAjaxClient(httpClient);
+
+        assertThat(client.findCatalogItem(" ", "S")).isEmpty();
+        assertThat(httpClient.searchParams).isNull();
+    }
+
+    @Test
     void findCatalogItemReturnsEmptyWhenNoExactMatchExists() {
         CapturingHttpClient httpClient = new CapturingHttpClient();
         httpClient.searchProductResult = searchResult(item("4997", "S", "6390-2", "Main Street"));
@@ -56,6 +76,21 @@ class DefaultBricklinkAjaxClientTest {
     }
 
     @Test
+    void searchProductDropsNullQueryParams() {
+        CapturingHttpClient httpClient = new CapturingHttpClient();
+        httpClient.searchProductResult = searchResult(item("4997", "S", "6390-1", "Main Street"));
+        DefaultBricklinkAjaxClient client = new DefaultBricklinkAjaxClient(httpClient);
+        Map<String, Object> params = new HashMap<>();
+        params.put("q", "6390-1");
+        params.put("type", null);
+        params.put(null, "ignored");
+
+        client.searchProduct(params);
+
+        assertThat(httpClient.searchParams).containsExactly(Map.entry("q", "6390-1"));
+    }
+
+    @Test
     void catalogItemsForSaleFetchesAllPages() {
         CapturingHttpClient httpClient = new CapturingHttpClient();
         httpClient.catalogPages = List.of(
@@ -75,6 +110,30 @@ class DefaultBricklinkAjaxClientTest {
                 .containsEntry("cond", "U")
                 .containsEntry("rpp", 2)
                 .containsEntry("iconly", 0);
+    }
+
+    @Test
+    void catalogItemsForSaleByInternalItemIdDefaultsResultsPerPage() {
+        CapturingHttpClient httpClient = new CapturingHttpClient();
+        httpClient.catalogPages = List.of(catalogPage(1, 500, 1, "single-page"));
+        DefaultBricklinkAjaxClient client = new DefaultBricklinkAjaxClient(httpClient);
+
+        client.catalogItemsForSaleByInternalItemId(4997, "U", null);
+
+        assertThat(httpClient.catalogParams.getFirst()).containsEntry("rpp", 500);
+    }
+
+    @Test
+    void catalogItemsForSaleStopsWhenPageMetadataIsIncomplete() {
+        CapturingHttpClient httpClient = new CapturingHttpClient();
+        CatalogItemsForSaleResult partialMetadataPage = catalogPage(null, null, null, "partial-metadata");
+        httpClient.catalogPages = List.of(partialMetadataPage);
+        DefaultBricklinkAjaxClient client = new DefaultBricklinkAjaxClient(httpClient);
+
+        CatalogItemsForSaleResult result = client.catalogItemsForSale(Map.of("itemid", 4997));
+
+        assertThat(result.getList()).hasSize(1);
+        assertThat(httpClient.catalogParams).hasSize(1);
     }
 
     private static SearchProductResult searchResult(Item... items) {
@@ -101,7 +160,7 @@ class DefaultBricklinkAjaxClientTest {
         return item;
     }
 
-    private static CatalogItemsForSaleResult catalogPage(int page, int resultsPerPage, int totalCount, String... descriptions) {
+    private static CatalogItemsForSaleResult catalogPage(Integer page, Integer resultsPerPage, Integer totalCount, String... descriptions) {
         CatalogItemsForSaleResult result = new CatalogItemsForSaleResult();
         result.setPi(page);
         result.setRpp(resultsPerPage);
