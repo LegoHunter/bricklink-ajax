@@ -136,6 +136,33 @@ class BricklinkAjaxClientIntegrationTest {
     }
 
     @Test
+    void returnsAnEmptyResultWhenBricklinkAnswersThatNoLotsAreForSale() {
+        server.stubFor(get(urlPathEqualTo("/ajax/clone/catalogifs.ajax"))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[]")));
+
+        contextRunner().run(context -> assertThat(context.getBean(BricklinkAjaxClient.class)
+                .catalogItemsForSaleByInternalItemId(4997, "U", 500)
+                .getList()).isEmpty());
+    }
+
+    @Test
+    void keepsTheRawResponseBodyOnHttpErrors() {
+        server.stubFor(get(urlPathEqualTo("/ajax/clone/catalogifs.ajax"))
+                .willReturn(aResponse()
+                        .withStatus(503)
+                        .withHeader("Content-Type", "text/plain")
+                        .withBody("[]")));
+
+        contextRunner().run(context -> assertThatThrownBy(() -> context.getBean(BricklinkAjaxClient.class)
+                .catalogItemsForSaleByInternalItemId(4997, "U", 500))
+                .isInstanceOfSatisfying(BricklinkAjaxServerException.class, exception ->
+                        assertThat(exception.getResponseBody()).isEqualTo("[]")));
+    }
+
+    @Test
     void throwsServerExceptionForHttpServerError() {
         server.stubFor(get(urlPathEqualTo("/ajax/clone/catalogifs.ajax"))
                 .willReturn(aResponse()

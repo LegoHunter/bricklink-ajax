@@ -1,15 +1,13 @@
 package com.bricklink.api.ajax.model.v1;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
-import java.text.DecimalFormat;
-import java.text.ParseException;
+import java.math.BigDecimal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,35 +55,58 @@ public class  ItemForSale {
     private String strSellerCountryCode;
     private String strColor;
 
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final Pattern salePricePattern = Pattern.compile("^([A-Z]{2})\\s(.)(.*)$");
-
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final DecimalFormat decimalFormat = new DecimalFormat("0,000,000.00");
+    /**
+     * BrickLink price strings: a two-letter prefix with a symbol ({@code "US $1,234.56"}, {@code "AU $8.00"}) or a
+     * three-letter currency code ({@code "EUR 23.00"}, {@code "HUF 15,000.00"}).
+     */
+    private static final Pattern PRICE_PATTERN = Pattern.compile("^([A-Z]{2,3})\\s?([^\\d\\s]?)\\s*([\\d,]+(?:\\.\\d+)?)$");
 
     @ToString.Include
     public Double getSalePrice() {
-        return getDoubleFromSalePricePatternString(mDisplaySalePrice);
+        return amount(mDisplaySalePrice);
     }
 
     @ToString.Include
     public Double getMinBuy() {
-        return getDoubleFromSalePricePatternString(mMinBuy);
+        return amount(mMinBuy);
     }
 
-    private Double getDoubleFromSalePricePatternString(String salePricePatternString) {
-        if (null != salePricePatternString) {
-            Matcher salePriceMatcher = salePricePattern.matcher(salePricePatternString);
-            if (salePriceMatcher.matches()) {
-                try {
-                    return decimalFormat.parse(salePriceMatcher.group(3)).doubleValue();
-                } catch (ParseException e) {
-                    log.error("Unable to parse decimal number [{}]", salePriceMatcher.group(3));
-                }
-            }
+    /**
+     * ISO currency code of {@link #getSalePrice()}: BrickLink's display currency for the browsing session, read from
+     * {@code mDisplaySalePrice}. {@code "US $"} is {@code USD}, {@code "AU $"} is {@code AUD}, {@code "EUR"} is
+     * {@code EUR}. Null when the price string is missing or not recognized.
+     */
+    @ToString.Include
+    public String getDisplayCurrencyCode() {
+        Matcher matcher = matcher(mDisplaySalePrice);
+        if (matcher == null) {
+            return null;
         }
-        return 0.0d;
+        String prefix = matcher.group(1);
+        if (prefix.length() == 3) {
+            return prefix;
+        }
+        return "$".equals(matcher.group(2)) ? prefix + "D" : null;
+    }
+
+    private static Double amount(String price) {
+        Matcher matcher = matcher(price);
+        if (matcher == null) {
+            return 0.0d;
+        }
+        try {
+            return new BigDecimal(matcher.group(3).replace(",", "")).doubleValue();
+        } catch (NumberFormatException e) {
+            log.error("Unable to parse decimal number [{}]", matcher.group(3));
+            return 0.0d;
+        }
+    }
+
+    private static Matcher matcher(String price) {
+        if (price == null) {
+            return null;
+        }
+        Matcher matcher = PRICE_PATTERN.matcher(price.trim());
+        return matcher.matches() ? matcher : null;
     }
 }

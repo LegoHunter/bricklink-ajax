@@ -1,5 +1,6 @@
 package com.bricklink.api.ajax.client;
 
+import com.bricklink.api.ajax.exception.BricklinkAjaxClientException;
 import com.bricklink.api.ajax.model.v1.Item;
 import com.bricklink.api.ajax.model.v1.Result;
 import com.bricklink.api.ajax.model.v1.Type;
@@ -136,6 +137,33 @@ class DefaultBricklinkAjaxClientTest {
         assertThat(httpClient.catalogParams).hasSize(1);
     }
 
+    @Test
+    void catalogItemsForSaleReturnsAnEmptyResultWhenBricklinkHasNoLotsForSale() {
+        for (String body : List.of("[]", "", "  [] ")) {
+            CapturingHttpClient httpClient = new CapturingHttpClient();
+            httpClient.catalogFailure = new BricklinkAjaxClientException(400, "GET /ajax/clone/catalogifs.ajax returned [" + body + "]", body);
+            DefaultBricklinkAjaxClient client = new DefaultBricklinkAjaxClient(httpClient);
+
+            CatalogItemsForSaleResult result = client.catalogItemsForSaleByInternalItemId(4997, "U", 500);
+
+            assertThat(result.getList()).isEmpty();
+            assertThat(result.getTotal_count()).isZero();
+        }
+    }
+
+    @Test
+    void catalogItemsForSaleStillFailsForOtherClientErrors() {
+        CapturingHttpClient rateLimited = new CapturingHttpClient();
+        rateLimited.catalogFailure = new BricklinkAjaxClientException(429, "GET /ajax/clone/catalogifs.ajax returned []", "");
+        CapturingHttpClient badRequest = new CapturingHttpClient();
+        badRequest.catalogFailure = new BricklinkAjaxClientException(400, "GET /ajax/clone/catalogifs.ajax returned [bad item]", "bad item");
+
+        assertThatThrownBy(() -> new DefaultBricklinkAjaxClient(rateLimited).catalogItemsForSaleByInternalItemId(4997, "U", 500))
+                .isInstanceOf(BricklinkAjaxClientException.class);
+        assertThatThrownBy(() -> new DefaultBricklinkAjaxClient(badRequest).catalogItemsForSaleByInternalItemId(4997, "U", 500))
+                .isInstanceOf(BricklinkAjaxClientException.class);
+    }
+
     private static SearchProductResult searchResult(Item... items) {
         Type type = new Type();
         type.setType("S");
@@ -180,6 +208,7 @@ class DefaultBricklinkAjaxClientTest {
         private Map<String, Object> searchParams;
         private final List<Map<String, Object>> catalogParams = new ArrayList<>();
         private int catalogPageIndex;
+        private RuntimeException catalogFailure;
 
         @Override
         public SearchProductResult searchProduct(Map<String, Object> params) {
@@ -190,6 +219,9 @@ class DefaultBricklinkAjaxClientTest {
         @Override
         public CatalogItemsForSaleResult catalogItemsForSale(Map<String, Object> params) {
             catalogParams.add(Map.copyOf(params));
+            if (catalogFailure != null) {
+                throw catalogFailure;
+            }
             return catalogPages.get(catalogPageIndex++);
         }
     }
