@@ -37,7 +37,15 @@ public class DefaultBricklinkAjaxClient implements BricklinkAjaxClient {
         queryParams.put("pi", page);
 
         while (true) {
-            CatalogItemsForSaleResult pageResult = httpClient.catalogItemsForSale(queryParams);
+            CatalogItemsForSaleResult pageResult;
+            try {
+                pageResult = httpClient.catalogItemsForSale(queryParams);
+            } catch (BricklinkAjaxClientException e) {
+                if (isNoLotsForSale(e)) {
+                    break;
+                }
+                throw e;
+            }
             copyResponseMetadata(completeResult, pageResult);
             completeResult.getList().addAll(pageResult.getList());
 
@@ -93,6 +101,19 @@ public class DefaultBricklinkAjaxClient implements BricklinkAjaxClient {
         params.put("rpp", Optional.ofNullable(resultsPerPage).orElse(DEFAULT_RESULTS_PER_PAGE));
         params.put("iconly", 0);
         return catalogItemsForSale(params);
+    }
+
+    /**
+     * BrickLink answers catalogifs.ajax for an item with no lots for sale with an HTTP 4xx whose body is empty or
+     * {@code []}. That is a valid "no competitors" answer, not an error. 5xx responses are never treated this way.
+     */
+    private boolean isNoLotsForSale(BricklinkAjaxClientException e) {
+        Integer statusCode = e.getStatusCode();
+        if (statusCode == null || statusCode < 400 || statusCode > 499 || statusCode == 429) {
+            return false;
+        }
+        String body = e.getResponseBody() == null ? "" : e.getResponseBody().trim();
+        return body.isEmpty() || "[]".equals(body);
     }
 
     private String normalizeItemType(String itemType) {

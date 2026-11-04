@@ -58,18 +58,19 @@ public class BricklinkAjaxAutoConfiguration {
                 })
                 .defaultStatusHandler(statusCode -> statusCode.is3xxRedirection() || statusCode.isError(), (request, response) -> {
                     int statusCode = response.getStatusCode().value();
-                    String body = responseBody(response);
+                    String rawBody = responseBody(response);
+                    String body = rawBody;
                     String requestDescription = request.getMethod() + " " + request.getURI();
                     if (statusCode >= 300 && statusCode <= 499) {
                         if (statusCode >= 300 && statusCode <= 399) {
                             body = "Unexpected redirect to [%s]. Response body: [%s]".formatted(
                                     response.getHeaders().getFirst(HttpHeaders.LOCATION),
-                                    body
+                                    rawBody
                             );
                         }
-                        throw new BricklinkAjaxClientException(statusCode, "%s returned [%s]".formatted(requestDescription, body));
+                        throw new BricklinkAjaxClientException(statusCode, "%s returned [%s]".formatted(requestDescription, body), rawBody);
                     }
-                    throw new BricklinkAjaxServerException(statusCode, "%s returned [%s]".formatted(requestDescription, body));
+                    throw new BricklinkAjaxServerException(statusCode, "%s returned [%s]".formatted(requestDescription, body), rawBody);
                 });
 
         if (properties.getHttpLogging().isEnabled()) {
